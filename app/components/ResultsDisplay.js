@@ -3,23 +3,50 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import html2canvas from 'html2canvas'
+import { useEffect, useState } from 'react'
 
 export default function ResultsDisplay({ results, formData }) {
   const desiredAgeResult = results.find(r => r.isDesiredAge) || results[results.length - 1]
   const hasComparison = results.some(r => r.pensionNormalMensual)
-  const captureChart = async (chartId) => {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 640px)')
+    const onChange = (e) => setIsMobile(e.matches)
+    setIsMobile(mql.matches)
+    mql.addEventListener ? mql.addEventListener('change', onChange) : mql.addListener(onChange)
+    return () => {
+      mql.removeEventListener ? mql.removeEventListener('change', onChange) : mql.removeListener(onChange)
+    }
+  }, [])
+  const captureChart = async (chartId, opts = {}) => {
     const chartElement = document.getElementById(chartId)
     if (!chartElement) return null
     
     try {
+      const { forceWidth = 1100, forceHeight = 550 } = opts
+
+      // Forzar tamaño fijo para PDF sin afectar el layout móvil
+      const prevWidth = chartElement.style.width
+      const prevHeight = chartElement.style.height
+      chartElement.style.width = `${forceWidth}px`
+      chartElement.style.height = `${forceHeight}px`
+      // Esperar un frame para que Recharts se reajuste
+      await new Promise(requestAnimationFrame)
+
       const canvas = await html2canvas(chartElement, {
         backgroundColor: '#ffffff',
         scale: 2,
         logging: false,
         useCORS: true,
-        width: chartElement.offsetWidth,
-        height: chartElement.offsetHeight
+        width: forceWidth,
+        height: forceHeight
       })
+
+      // Restaurar tamaño original del contenedor
+      chartElement.style.width = prevWidth
+      chartElement.style.height = prevHeight
+
       return {
         dataUrl: canvas.toDataURL('image/png'),
         width: canvas.width,
@@ -214,7 +241,7 @@ export default function ResultsDisplay({ results, formData }) {
         yPosition += 18
         
         // Capture line chart
-        const lineChartData = await captureChart('line-chart')
+        const lineChartData = await captureChart('line-chart', { forceWidth: 1100, forceHeight: 550 })
         if (lineChartData) {
           pdf.setFontSize(12)
           pdf.setFont(undefined, 'bold')
@@ -239,14 +266,14 @@ export default function ResultsDisplay({ results, formData }) {
           yPosition += imgHeight + 15
         }
         
-        // Check if we need a new page
+        // Verificar espacio antes de la segunda gráfica
         if (yPosition > 200) {
           pdf.addPage()
           yPosition = 30
         }
         
         // Capture bar chart
-        const barChartData = await captureChart('bar-chart')
+        const barChartData = await captureChart('bar-chart', { forceWidth: 1100, forceHeight: 520 })
         if (barChartData) {
           pdf.setFontSize(12)
           pdf.setFont(undefined, 'bold')
@@ -272,7 +299,7 @@ export default function ResultsDisplay({ results, formData }) {
         }
       }
       
-      // Check if we need a new page for the table
+      // Verificar si necesitamos nueva página para la tabla
       if (yPosition > 200) {
         pdf.addPage()
         yPosition = 30
@@ -294,7 +321,7 @@ export default function ResultsDisplay({ results, formData }) {
         tableHead = [[
           'Edad de Retiro', 'Semanas Totales',
           'Sin Modalidad 40', 'Con Modalidad 40',
-          'Aplica PMG (Sin/Con)', 'Pensión antes de PMG (Sin/Con)',
+          'Aplica PMG (sin modalidad 40 / con modalidad 40)', 'Pensión antes de PMG (sin modalidad 40 / con modalidad 40)',
           'Beneficio Mensual', 'Beneficio Anual'
         ]]
         tableBody = results.map((result, index) => {
@@ -357,12 +384,10 @@ export default function ResultsDisplay({ results, formData }) {
       
       // SECCIÓN DE CONCLUSIONES Y RECOMENDACIONES
       let finalY = pdf.lastAutoTable.finalY + 20
-      
       if (finalY > 250) {
         pdf.addPage()
         finalY = 30
       }
-      
       pdf.setFillColor(245, 245, 245)
       pdf.rect(15, finalY, 180, 8, 'F')
       pdf.setFontSize(16)
@@ -427,8 +452,12 @@ export default function ResultsDisplay({ results, formData }) {
         }
       }
       
-      // Disclaimer legal
+      // Disclaimer legal (verificar espacio)
       finalY += 20
+      if (finalY + 28 > pdf.internal.pageSize.getHeight() - 10) {
+        pdf.addPage()
+        finalY = 30
+      }
       pdf.setFillColor(255, 248, 220) // Amarillo muy claro
       pdf.rect(15, finalY, 180, 20, 'F')
       pdf.setFontSize(9)
@@ -437,15 +466,15 @@ export default function ResultsDisplay({ results, formData }) {
       pdf.text('Social de 1973 y valores vigentes para 2025. Los resultados son estimativos y pueden', 20, finalY + 12)
       pdf.text('variar según modificaciones legislativas futuras. Se recomienda consultar al IMSS.', 20, finalY + 17)
       
-      // Footer del documento
-      finalY += 35
+      // Footer del documento (pegado al fondo de la página actual)
+      const footerY = pdf.internal.pageSize.getHeight() - 12
       pdf.setFillColor(41, 128, 185)
-      pdf.rect(0, finalY, 210, 15, 'F')
+      pdf.rect(0, footerY - 5, 210, 15, 'F')
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(10)
       pdf.setFont(undefined, 'normal')
-      pdf.text('Generado por Sistema de Cálculo Pensional IMSS', 20, finalY + 8)
-      pdf.text(`Página 1 de ${pdf.getNumberOfPages()}`, 160, finalY + 8)
+      pdf.text('Generado por Sistema de Cálculo Pensional IMSS', 20, footerY + 2)
+      pdf.text(`Pág. ${pdf.getNumberOfPages()}`, 180, footerY + 2)
       
       // Nombre del archivo más descriptivo
       const nombreArchivo = formData.nombre 
@@ -498,7 +527,7 @@ export default function ResultsDisplay({ results, formData }) {
           {hasComparison ? (
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
               <div className="text-gray-700">
-                <span className="text-gray-500 mr-2">Sin M40:</span>
+                <span className="text-gray-500 mr-2">Sin modalidad 40:</span>
                 <span className="text-xl font-bold text-gray-900">
                   ${parseFloat(desiredAgeResult.pensionNormalMensual).toLocaleString('es-MX', {minimumFractionDigits: 2})}
                 </span>
@@ -507,7 +536,7 @@ export default function ResultsDisplay({ results, formData }) {
                 </span>
               </div>
               <div className="text-gray-700">
-                <span className="text-gray-500 mr-2">Con M40:</span>
+                <span className="text-gray-500 mr-2">Con modalidad 40:</span>
                 <span className="text-xl font-bold text-gray-900">
                   ${parseFloat(desiredAgeResult.pensionMensual).toLocaleString('es-MX', {minimumFractionDigits: 2})}
                 </span>
@@ -581,35 +610,31 @@ export default function ResultsDisplay({ results, formData }) {
         <div className="mb-8">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Comparativo: Con vs Sin Modalidad 40</h3>
           <div id="line-chart" className="w-full overflow-hidden">
-            <ResponsiveContainer width="100%" height={450} minHeight={300} className="sm:h-96 h-80">
-              <LineChart data={chartData} margin={{ top: 20, right: 20, left: 20, bottom: 80 }}>
+            <ResponsiveContainer width="100%" height={isMobile ? 360 : 450} minHeight={280} className="sm:h-96 h-80">
+              <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: isMobile ? 70 : 40 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="edad" 
                   label={{ value: 'Edad de Retiro', position: 'insideBottom', offset: -5 }}
-                  height={60}
+                  height={isMobile ? 50 : 40}
                 />
                 <YAxis 
                   label={{ value: 'Pensión Mensual ($)', angle: -90, position: 'insideLeft' }}
                   tickFormatter={(value) => `$${value.toLocaleString()}`}
-                  width={80}
+                  width={isMobile ? 60 : 80}
                 />
                 <Tooltip 
                   formatter={(value, name) => [`$${parseFloat(value).toLocaleString()}`, name]}
                   labelFormatter={(label) => `Edad: ${label} años`}
                 />
-                <Legend 
-                  verticalAlign="top" 
-                  height={36}
-                  wrapperStyle={{ paddingBottom: '20px' }}
-                />
+                <Legend verticalAlign={isMobile ? 'bottom' : 'top'} height={isMobile ? 48 : 24} wrapperStyle={{ paddingTop: isMobile ? 8 : 0 }} />
                 <Line 
                   type="monotone" 
                   dataKey="pensionConModalidad40" 
                   stroke="#2563eb" 
                   strokeWidth={3}
                   name="Con Modalidad 40"
-                  dot={{ fill: '#2563eb', strokeWidth: 2, r: 6 }}
+                  dot={{ fill: '#2563eb', strokeWidth: 2, r: isMobile ? 3 : 5 }}
                 />
                 <Line 
                   type="monotone" 
@@ -617,7 +642,7 @@ export default function ResultsDisplay({ results, formData }) {
                   stroke="#dc2626" 
                   strokeWidth={3}
                   name="Sin Modalidad 40"
-                  dot={{ fill: '#dc2626', strokeWidth: 2, r: 6 }}
+                  dot={{ fill: '#dc2626', strokeWidth: 2, r: isMobile ? 3 : 5 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -629,23 +654,24 @@ export default function ResultsDisplay({ results, formData }) {
         <div className="mb-8">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Diferencia de Pensión por Edad</h3>
           <div id="bar-chart" className="w-full overflow-hidden">
-            <ResponsiveContainer width="100%" height={350} minHeight={250} className="sm:h-80 h-64">
-              <BarChart data={chartData} margin={{ top: 20, right: 20, left: 20, bottom: 80 }}>
+            <ResponsiveContainer width="100%" height={isMobile ? 300 : 350} minHeight={240} className="sm:h-80 h-64">
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: isMobile ? 70 : 50 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="edad" 
                   label={{ value: 'Edad de Retiro', position: 'insideBottom', offset: -5 }}
-                  height={60}
+                  height={isMobile ? 50 : 40}
                 />
                 <YAxis 
                   label={{ value: 'Diferencia ($)', angle: -90, position: 'insideLeft' }}
                   tickFormatter={(value) => `$${value.toLocaleString()}`}
-                  width={80}
+                  width={isMobile ? 60 : 80}
                 />
                 <Tooltip 
                   formatter={(value) => [`$${parseFloat(value).toLocaleString()}`, 'Beneficio Modalidad 40']}
                   labelFormatter={(label) => `Edad: ${label} años`}
                 />
+                <Legend verticalAlign={isMobile ? 'bottom' : 'top'} height={isMobile ? 48 : 24} wrapperStyle={{ paddingTop: isMobile ? 8 : 0 }} />
                 <Bar 
                   dataKey="diferencia" 
                   fill="#16a34a"
@@ -701,12 +727,12 @@ export default function ResultsDisplay({ results, formData }) {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${parseFloat(result.pensionNormalMensual).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${result.isDesiredAge ? 'text-yellow-700' : 'text-blue-600'}`}>${parseFloat(result.pensionMensual).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className="text-gray-600 mr-1">Sin:</span>
+                      <span className="text-gray-600 mr-1">Sin modalidad 40:</span>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded font-semibold ${result.aplicaPMGNormal ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
                         {result.aplicaPMGNormal ? 'Sí' : 'No'}
                       </span>
                       <span className="mx-1 text-gray-400">/</span>
-                      <span className="text-gray-600 mr-1">Con:</span>
+                      <span className="text-gray-600 mr-1">Con modalidad 40:</span>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded font-semibold ${result.aplicaPMG ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
                         {result.aplicaPMG ? 'Sí' : 'No'}
                       </span>
@@ -790,9 +816,9 @@ export default function ResultsDisplay({ results, formData }) {
                 </li>
                 <li>
                   <span className="text-gray-500" title="Aplicación del piso de PMG">Aplica PMG:</span>
-                  <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded font-semibold ${desiredAgeResult.aplicaPMGNormal ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>Sin: {desiredAgeResult.aplicaPMGNormal ? 'Sí' : 'No'}</span>
+                  <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded font-semibold ${desiredAgeResult.aplicaPMGNormal ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>Sin modalidad 40: {desiredAgeResult.aplicaPMGNormal ? 'Sí' : 'No'}</span>
                   <span className="mx-1 text-gray-400">/</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded font-semibold ${desiredAgeResult.aplicaPMG ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>Con: {desiredAgeResult.aplicaPMG ? 'Sí' : 'No'}</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded font-semibold ${desiredAgeResult.aplicaPMG ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>Con modalidad 40: {desiredAgeResult.aplicaPMG ? 'Sí' : 'No'}</span>
                 </li>
                 <li>
                   <span className="text-gray-500" title="Factor por edad 60–65">Factor por edad:</span>

@@ -75,9 +75,9 @@ export default function MultipleClientsDisplay({ clients }) {
           pdf.text(`Pensión con Modalidad 40: $${parseFloat(bestResult.pensionMensual).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 20, yPosition)
           yPosition += 8
           pdf.setFont(undefined, 'normal')
-          pdf.text(`Aplica PMG (Sin/Con): ${bestResult.aplicaPMGNormal ? 'Sí' : 'No'} / ${bestResult.aplicaPMG ? 'Sí' : 'No'}`, 20, yPosition)
+          pdf.text(`Aplica PMG (sin modalidad 40 / con modalidad 40): ${bestResult.aplicaPMGNormal ? 'Sí' : 'No'} / ${bestResult.aplicaPMG ? 'Sí' : 'No'}`, 20, yPosition)
           yPosition += 8
-          pdf.text(`Antes de PMG (Sin/Con): $${parseFloat(bestResult.pensionNormalMensualAntesPMG||0).toLocaleString('es-MX', { minimumFractionDigits: 0 })} / $${parseFloat(bestResult.pensionMensualAntesPMG||0).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`, 20, yPosition)
+          pdf.text(`Antes de PMG (sin modalidad 40 / con modalidad 40): $${parseFloat(bestResult.pensionNormalMensualAntesPMG||0).toLocaleString('es-MX', { minimumFractionDigits: 0 })} / $${parseFloat(bestResult.pensionMensualAntesPMG||0).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`, 20, yPosition)
           yPosition += 10
           pdf.setTextColor(0, 128, 0)
           pdf.text(`Beneficio mensual: $${beneficio.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 20, yPosition)
@@ -185,12 +185,12 @@ export default function MultipleClientsDisplay({ clients }) {
                     </div>
                     <div className="mt-1 flex items-center gap-2">
                       <span className="text-gray-700">PMG</span>
-                      <span className="text-gray-600">Sin:</span>
+                      <span className="text-gray-600">Sin modalidad 40:</span>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded font-semibold ${bestResult.aplicaPMGNormal ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
                         {bestResult.aplicaPMGNormal ? 'Sí' : 'No'}
                       </span>
                       <span className="text-gray-400">/</span>
-                      <span className="text-gray-600">Con:</span>
+                      <span className="text-gray-600">Con modalidad 40:</span>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded font-semibold ${bestResult.aplicaPMG ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
                         {bestResult.aplicaPMG ? 'Sí' : 'No'}
                       </span>
