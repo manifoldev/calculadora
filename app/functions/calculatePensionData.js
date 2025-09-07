@@ -61,9 +61,13 @@ export const calculatePensionData = (formData, fileData, useFileData) => {
         pensionMensual: det.mensual.toFixed(2),
         pensionMensualAntesPMG: det.mensualAntesPMG.toFixed(2),
         aplicaPMG: det.aplicaPMG,
+        salarioBaseUtilizado: det.salarioBaseUtilizado,
+        salarioPromedio250: parseFloat(salario),
         pensionNormalMensual: detNormal.mensual.toFixed(2),
         pensionNormalMensualAntesPMG: detNormal.mensualAntesPMG.toFixed(2),
         aplicaPMGNormal: detNormal.aplicaPMG,
+        salarioBaseUtilizadoNormal: detNormal.salarioBaseUtilizado,
+        salarioPromedio250Normal: siguesCotizando ? parseFloat(salario) : parseFloat(salarioPromedio),
         semanasTotales,
         isDesiredAge: edadRetiro == parseInt(source.edadRetiro)
       })
@@ -73,6 +77,8 @@ export const calculatePensionData = (formData, fileData, useFileData) => {
         pensionMensual: det.mensual.toFixed(2),
         pensionMensualAntesPMG: det.mensualAntesPMG.toFixed(2),
         aplicaPMG: det.aplicaPMG,
+        salarioBaseUtilizado: det.salarioBaseUtilizado,
+        salarioPromedio250: parseFloat(salario),
         semanasTotales,
         isDesiredAge: edadRetiro == parseInt(source.edadRetiro)
       });

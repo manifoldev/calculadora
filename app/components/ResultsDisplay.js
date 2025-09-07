@@ -489,6 +489,47 @@ export default function ResultsDisplay({ results, formData }) {
         )}
       </div>
 
+      {/* Resumen Edad Deseada (monto principal con badge PMG) */}
+      <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div className="text-gray-800 font-semibold">
+            Edad deseada: {desiredAgeResult.edadRetiro} años
+          </div>
+          {hasComparison ? (
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+              <div className="text-gray-700">
+                <span className="text-gray-500 mr-2">Sin M40:</span>
+                <span className="text-xl font-bold text-gray-900">
+                  ${parseFloat(desiredAgeResult.pensionNormalMensual).toLocaleString('es-MX', {minimumFractionDigits: 2})}
+                </span>
+                <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${desiredAgeResult.aplicaPMGNormal ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`} title="Pensión mínima garantizada">
+                  {desiredAgeResult.aplicaPMGNormal ? 'Topado por PMG' : 'Sin tope PMG'}
+                </span>
+              </div>
+              <div className="text-gray-700">
+                <span className="text-gray-500 mr-2">Con M40:</span>
+                <span className="text-xl font-bold text-gray-900">
+                  ${parseFloat(desiredAgeResult.pensionMensual).toLocaleString('es-MX', {minimumFractionDigits: 2})}
+                </span>
+                <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${desiredAgeResult.aplicaPMG ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`} title="Pensión mínima garantizada">
+                  {desiredAgeResult.aplicaPMG ? 'Topado por PMG' : 'Sin tope PMG'}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-gray-700">
+              <span className="text-gray-500 mr-2">Pensión:</span>
+              <span className="text-xl font-bold text-gray-900">
+                ${parseFloat(desiredAgeResult.pensionMensual).toLocaleString('es-MX', {minimumFractionDigits: 2})}
+              </span>
+              <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${desiredAgeResult.aplicaPMG ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`} title="Pensión mínima garantizada">
+                {desiredAgeResult.aplicaPMG ? 'Topado por PMG' : 'Sin tope PMG'}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Tarjetas resumen PMG (edad deseada) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {hasComparison ? (
@@ -692,6 +733,103 @@ export default function ResultsDisplay({ results, formData }) {
         </table>
       </div>
 
+      {/* Cómo se calculó (desglose) */}
+      <div className="mb-8">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4">Cómo se calculó</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Columna izquierda */}
+          <div className="p-4 border rounded-lg">
+            <div className="text-sm text-gray-500 mb-2">Entradas y promedios</div>
+            {hasComparison ? (
+              <ul className="text-sm text-gray-800 space-y-1">
+                <li>
+                  <span className="text-gray-500" title="Promedio de las últimas 250 semanas">Salario promedio 250 semanas:</span>
+                  <span className="ml-2 font-semibold">${parseFloat(desiredAgeResult.salarioPromedio250Normal||0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                  <span className="mx-1 text-gray-400">/</span>
+                  <span className="font-semibold">${parseFloat(desiredAgeResult.salarioPromedio250||0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                </li>
+                <li>
+                  <span className="text-gray-500" title="Tope de 25 UMA">Salario base utilizado:</span>
+                  <span className="ml-2">${parseFloat(desiredAgeResult.salarioBaseUtilizadoNormal||0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                  <span className="mx-1 text-gray-400">/</span>
+                  <span>${parseFloat(desiredAgeResult.salarioBaseUtilizado||0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                </li>
+                <li>
+                  <span className="text-gray-500" title="Semanas acumuladas al llegar a la edad">Semanas totales:</span>
+                  <span className="ml-2">{desiredAgeResult.semanasTotales.toLocaleString()}</span>
+                </li>
+              </ul>
+            ) : (
+              <ul className="text-sm text-gray-800 space-y-1">
+                <li>
+                  <span className="text-gray-500" title="Promedio de las últimas 250 semanas">Salario promedio 250 semanas:</span>
+                  <span className="ml-2 font-semibold">${parseFloat(desiredAgeResult.salarioPromedio250||0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                </li>
+                <li>
+                  <span className="text-gray-500" title="Tope de 25 UMA">Salario base utilizado:</span>
+                  <span className="ml-2">${parseFloat(desiredAgeResult.salarioBaseUtilizado||0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                </li>
+                <li>
+                  <span className="text-gray-500" title="Semanas acumuladas al llegar a la edad">Semanas totales:</span>
+                  <span className="ml-2">{desiredAgeResult.semanasTotales.toLocaleString()}</span>
+                </li>
+              </ul>
+            )}
+          </div>
+
+          {/* Columna derecha */}
+          <div className="p-4 border rounded-lg">
+            <div className="text-sm text-gray-500 mb-2">Resultados intermedios</div>
+            {hasComparison ? (
+              <ul className="text-sm text-gray-800 space-y-1">
+                <li>
+                  <span className="text-gray-500" title="Antes de aplicar el piso de PMG">Pensión antes de PMG:</span>
+                  <span className="ml-2 font-semibold">${parseFloat(desiredAgeResult.pensionNormalMensualAntesPMG||0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                  <span className="mx-1 text-gray-400">/</span>
+                  <span className="font-semibold">${parseFloat(desiredAgeResult.pensionMensualAntesPMG||0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                </li>
+                <li>
+                  <span className="text-gray-500" title="Aplicación del piso de PMG">Aplica PMG:</span>
+                  <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded font-semibold ${desiredAgeResult.aplicaPMGNormal ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>Sin: {desiredAgeResult.aplicaPMGNormal ? 'Sí' : 'No'}</span>
+                  <span className="mx-1 text-gray-400">/</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded font-semibold ${desiredAgeResult.aplicaPMG ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>Con: {desiredAgeResult.aplicaPMG ? 'Sí' : 'No'}</span>
+                </li>
+                <li>
+                  <span className="text-gray-500" title="Factor por edad 60–65">Factor por edad:</span>
+                  <span className="ml-2">{
+                    desiredAgeResult.edadRetiro <= 60.5 ? '0.75' :
+                    desiredAgeResult.edadRetiro <= 61.5 ? '0.80' :
+                    desiredAgeResult.edadRetiro <= 62.5 ? '0.85' :
+                    desiredAgeResult.edadRetiro <= 63.5 ? '0.90' :
+                    desiredAgeResult.edadRetiro < 64.5 ? '0.95' : '1.00'
+                  }</span>
+                </li>
+              </ul>
+            ) : (
+              <ul className="text-sm text-gray-800 space-y-1">
+                <li>
+                  <span className="text-gray-500" title="Antes de aplicar el piso de PMG">Pensión antes de PMG:</span>
+                  <span className="ml-2 font-semibold">${parseFloat(desiredAgeResult.pensionMensualAntesPMG||0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                </li>
+                <li>
+                  <span className="text-gray-500" title="Aplicación del piso de PMG">Aplica PMG:</span>
+                  <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded font-semibold ${desiredAgeResult.aplicaPMG ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{desiredAgeResult.aplicaPMG ? 'Sí' : 'No'}</span>
+                </li>
+                <li>
+                  <span className="text-gray-500" title="Factor por edad 60–65">Factor por edad:</span>
+                  <span className="ml-2">{
+                    desiredAgeResult.edadRetiro <= 60.5 ? '0.75' :
+                    desiredAgeResult.edadRetiro <= 61.5 ? '0.80' :
+                    desiredAgeResult.edadRetiro <= 62.5 ? '0.85' :
+                    desiredAgeResult.edadRetiro <= 63.5 ? '0.90' :
+                    desiredAgeResult.edadRetiro < 64.5 ? '0.95' : '1.00'
+                  }</span>
+                </li>
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
       {hasComparison && (
         <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
           <h4 className="text-lg font-semibold text-green-800 mb-2">Recomendación</h4>
